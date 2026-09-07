@@ -16,7 +16,7 @@ PROJECT_ID          = Variable.get('ENV_PROJECT_ID', default_var=os.environ.get(
 LOCATION            = Variable.get('ENV_LOCATION', default_var=os.environ.get('ENV_LOCATION', 'southamerica-west1'))
 SERVICE_ACCOUNT     = Variable.get('ENV_SERVICE_ACCOUNT', default_var=os.environ.get('ENV_SERVICE_ACCOUNT', 'pub-sub-data-flow@pub-sub-data-flow.iam.gserviceaccount.com'))
 SUBNETWORK          = Variable.get('ENV_SUBNETWORK', default_var=os.environ.get('ENV_SUBNETWORK', ''))
-GCS_TEMP_LOCATION   = Variable.get('ENV_GCS_TEMP_LOCATION', default_var=os.environ.get('ENV_GCS_TEMP_LOCATION', ''))
+GCS_TEMP_LOCATION   = Variable.get('ENV_GCS_TEMP_LOCATION', default_var=os.environ.get('ENV_GCS_TEMP_LOCATION', 'gs://dataflow-staging-us-east1-761179275057/temp'))
 
 # ─── Conexión SQL Server ──────────────────────────────────────────────────────
 AIRFLOW_CONN_ID     = Variable.get('ENV_AIRFLOW_CONN_ID_MSSQL_CONT', default_var='sql_server_retail_conn')
@@ -29,8 +29,8 @@ password_db = conn.password
 database    = conn.schema
 
 # Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy
-dataflow_host = "wpvjw-201-241-207-198.run.pinggy-free.link"
-dataflow_port = 34779
+dataflow_host = 'citri-201-241-207-198.run.pinggy-free.link'
+dataflow_port = '40059'
 
 # JDBC URL para Dataflow en GCP
 jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={database};"
@@ -38,7 +38,10 @@ jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={data
 # ─── Query base SQL Server ───────────────────────────────────────────────────
 _raw_sql = f"""
     SELECT
-        
+        CAST(CLIENTE_ID AS BIGINT) AS CLIENTE_ID,
+        CAST(NOMBRE AS VARCHAR(4000)) AS NOMBRE,
+        CAST(EMAIL AS VARCHAR(4000)) AS EMAIL,
+        FORMAT(FECHA_REGISTRO, 'yyyy-MM-dd HH:mm:ss') AS FECHA_REGISTRO,
         CAST(FORMAT(SYSDATETIMEOFFSET(), 'yyyy-MM-ddTHH:mm:ss.ffffffzzz') AS VARCHAR(4000)) AS load_timestamp_cl
     FROM {TABLE_NAME}
 """
@@ -47,8 +50,9 @@ sql = " ".join(_raw_sql.split())
 # ─── DAG ──────────────────────────────────────────────────────────────────────
 with models.DAG(
     dag_id="dataflow_flex_sqlserver_retail_clientes",
-    schedule_interval="0 11 * * *",
-    start_date=datetime(2026, 1, 1),
+    #schedule_interval="0 11 * * *",
+    #airflow 3.0
+    schedule="0 11 * * *",  # <--- Cambio aquí
     catchup=False,
     max_active_runs=1,
     default_args={
@@ -95,7 +99,7 @@ with models.DAG(
                     "username": user_db,
                     "password": password_db,
                     "query": sql,
-                    "outputTable": f"{PROJECT_ID}:bronze_",
+                    "outputTable": f"{PROJECT_ID}:bronze_retail.clientes",
                     "bigQueryLoadingTemporaryDirectory": GCS_TEMP_LOCATION,
                     "connectionProperties": "integratedSecurity=false;encrypt=true;trustServerCertificate=true",
                 },
@@ -116,19 +120,19 @@ with models.DAG(
         }
     )
 
-    # # ─── Llamar SP en BigQuery ────────────────────────────────────────────────
-    # bigquery_sp_stage_silver = BigQueryInsertJobOperator(
-    #     task_id='bigquery_sp_stage_silver',
-    #     gcp_conn_id='gcp_bigquery_conn',
-    #     configuration={
-    #         'query': {
-    #             'query': f'CALL `{PROJECT_ID}.bronze_retail.clientes`();',
-    #             'useLegacySql': False,
-    #         }
-    #     },
-    #     location=LOCATION,
-    #     project_id=PROJECT_ID
-    # )
+    # ─── Llamar SP en BigQuery ────────────────────────────────────────────────
+    bigquery_sp_stage_silver = BigQueryInsertJobOperator(
+        task_id='bigquery_sp_stage_silver',
+        gcp_conn_id='gcp_bigquery_conn',
+        configuration={
+            'query': {
+                'query': f'CALL `{PROJECT_ID}.bronze_retail.clientes`();',
+                'useLegacySql': False,
+            }
+        },
+        location=LOCATION,
+        project_id=PROJECT_ID
+    )
 
     # ─── Flujo ────────────────────────────────────────────────────────────────
-    delete_bronze_silver >> start_flex_template_job
+    delete_bronze_silver >> start_flex_template_job >> bigquery_sp_stage_silver
