@@ -29,8 +29,8 @@ password_db = conn.password
 database    = conn.schema
 
 # Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy
-dataflow_host = 'citri-201-241-207-198.run.pinggy-free.link'
-dataflow_port = '40059'
+dataflow_host = 'uyhyu-201-241-207-198.run.pinggy-free.link'
+dataflow_port = '39605'
 
 # JDBC URL para Dataflow en GCP
 jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={database};"
@@ -52,7 +52,7 @@ with models.DAG(
     dag_id="dataflow_flex_sqlserver_retail_clientes",
     #schedule_interval="0 11 * * *",
     #airflow 3.0
-    schedule="0 11 * * *",  # <--- Cambio aquí
+    schedule=None,  # <--- Cambio aquí
     catchup=False,
     max_active_runs=1,
     default_args={
