@@ -13,10 +13,10 @@ log = logging.getLogger(__name__)
 
 # ─── Obtención de Variables desde Airflow UI ──────────────────────────────────
 PROJECT_ID          = Variable.get('ENV_PROJECT_ID', default_var=os.environ.get('ENV_PROJECT_ID', 'pub-sub-data-flow'))
-LOCATION            = Variable.get('ENV_LOCATION', default_var=os.environ.get('ENV_LOCATION', 'southamerica-west1'))
+LOCATION            = Variable.get('ENV_LOCATION', default_var=os.environ.get('ENV_LOCATION', 'us-central1'))
 SERVICE_ACCOUNT     = Variable.get('ENV_SERVICE_ACCOUNT', default_var=os.environ.get('ENV_SERVICE_ACCOUNT', 'pub-sub-data-flow@pub-sub-data-flow.iam.gserviceaccount.com'))
 SUBNETWORK          = Variable.get('ENV_SUBNETWORK', default_var=os.environ.get('ENV_SUBNETWORK', ''))
-GCS_TEMP_LOCATION   = Variable.get('ENV_GCS_TEMP_LOCATION', default_var=os.environ.get('ENV_GCS_TEMP_LOCATION', 'gs://dataflow-staging-us-east1-761179275057/temp'))
+GCS_TEMP_LOCATION   = Variable.get('ENV_GCS_TEMP_LOCATION', default_var=os.environ.get('ENV_GCS_TEMP_LOCATION', 'gs://dataflow-staging-us-central1-51051980873/temp'))
 
 # ─── Conexión SQL Server ──────────────────────────────────────────────────────
 AIRFLOW_CONN_ID     = Variable.get('ENV_AIRFLOW_CONN_ID_MSSQL_CONT', default_var='sql_server_retail_conn')
@@ -93,7 +93,7 @@ with models.DAG(
         body={
             "launchParameter": {
                 "jobName": f"extract-sqlserver-to-bq-incremental-{os.urandom(4).hex()}",
-                "containerSpecGcsPath": "gs://dataflow-templates-southamerica-west1/latest/flex/SQLServer_to_BigQuery",
+                "containerSpecGcsPath": "gs://dataflow-templates-us-central1/latest/flex/SQLServer_to_BigQuery",
                 "parameters": {
                     "connectionURL": jdbc_url,
                     "username": user_db,
