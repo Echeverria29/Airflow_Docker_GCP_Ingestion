@@ -11,23 +11,21 @@ from airflow.providers.google.cloud.operators.dataflow import DataflowStartFlexT
 # ─── Logger ───────────────────────────────────────────────────────────────────
 log = logging.getLogger(__name__)
 
-# ─── Obtención de Variables desde Airflow UI ──────────────────────────────────
-
-PROJECT_ID          = Variable.get('ENV_PROJECT_ID', default_var=os.environ.get('ENV_PROJECT_ID', 'pub-sub-data-flow'))
-LOCATION            = Variable.get('ENV_LOCATION', default_var=os.environ.get('ENV_LOCATION', 'us-central1'))
-SERVICE_ACCOUNT     = Variable.get('ENV_SERVICE_ACCOUNT', default_var=os.environ.get('ENV_SERVICE_ACCOUNT', 'pub-sub-data-flow@pub-sub-data-flow.iam.gserviceaccount.com'))
-SUBNETWORK          = Variable.get('ENV_SUBNETWORK', default_var=os.environ.get('ENV_SUBNETWORK', ''))
-GCS_TEMP_LOCATION   = Variable.get('ENV_GCS_TEMP_LOCATION', default_var=os.environ.get('ENV_GCS_TEMP_LOCATION', 'gs://dataflow-staging-us-central1-51051980873/temp'))
+# ─── Obtención de Variables de Entorno (Estilo Managed Airflow GCP) ────────────────
+PROJECT_ID        = os.environ.get('ENV_PROJECT_ID')
+LOCATION          = os.environ.get('ENV_LOCATION')
+SERVICE_ACCOUNT   = os.environ.get('ENV_SERVICE_ACCOUNT')
+SUBNETWORK        = os.environ.get('ENV_SUBNETWORK', '')
+GCS_TEMP_LOCATION = os.environ.get('ENV_GCS_TEMP_LOCATION')
 
 # ─── Conexión SQL Server ──────────────────────────────────────────────────────
-AIRFLOW_CONN_ID     = Variable.get('ENV_AIRFLOW_CONN_ID_MSSQL_CONT', default_var='sql_server_retail_conn')
-TABLE_NAME          = Variable.get('ENV_TABLE_CLIENTES', default_var='RetailDB.dbo.clientes')
+AIRFLOW_CONN_ID   = os.environ.get('ENV_AIRFLOW_CONN_ID_MSSQL')
+TABLE_NAME        = os.environ.get('ENV_TABLE_CLIENTES')
 
 # Solo si hay labels definidos en Airflow, de lo contrario comentar la línea
 # LABELS = {
 #     "dueno": os.environ.get('LABEL_DUENO'),
 #     "aplicacion": "medallion-gcp",
-#     "centrocosto": os.environ.get('LABEL_CENTROCOSTO'),
 #     "entorno": os.environ.get('ENV_ENVIRONMENT'),
 #     "horario": "24x5",
 #     "nombre": PROJECT_ID,
@@ -42,8 +40,8 @@ password_db = conn.password
 database    = conn.schema
 
 # Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy
-dataflow_host = 'pprtp-201-241-207-198.run.pinggy-free.link'
-dataflow_port = '36755'
+dataflow_host = 'kfwiu-201-241-207-198.run.pinggy-free.link'
+dataflow_port = '40121'
 
 # JDBC URL para Dataflow en GCP
 jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={database};"
