@@ -116,6 +116,9 @@ with models.DAG(
                         "use_runner_v2",
                         "enable_lineage=true"
                     ],
+                    # Pinggy crea un puente seguro entre tu computador local y internet. Le asigna una dirección pública temporal a tu túnel
+                    # Si Dataflow intenta conectarse directamente a tu base de datos local, la nube de Google simplemente "no la ve" porque hay un firewall de por medio
+                    # WORKER_IP_PUBLIC pero con piggy, en entorno de GCP en Managed Airflow es WORKER_IP_PRIVATE
                     "ipConfiguration": "WORKER_IP_PUBLIC",
                     "tempLocation": GCS_TEMP_LOCATION
                 }
