@@ -12,6 +12,7 @@ from airflow.providers.google.cloud.operators.dataflow import DataflowStartFlexT
 log = logging.getLogger(__name__)
 
 # ─── Obtención de Variables desde Airflow UI ──────────────────────────────────
+
 PROJECT_ID          = Variable.get('ENV_PROJECT_ID', default_var=os.environ.get('ENV_PROJECT_ID', 'pub-sub-data-flow'))
 LOCATION            = Variable.get('ENV_LOCATION', default_var=os.environ.get('ENV_LOCATION', 'us-central1'))
 SERVICE_ACCOUNT     = Variable.get('ENV_SERVICE_ACCOUNT', default_var=os.environ.get('ENV_SERVICE_ACCOUNT', 'pub-sub-data-flow@pub-sub-data-flow.iam.gserviceaccount.com'))
@@ -21,6 +22,18 @@ GCS_TEMP_LOCATION   = Variable.get('ENV_GCS_TEMP_LOCATION', default_var=os.envir
 # ─── Conexión SQL Server ──────────────────────────────────────────────────────
 AIRFLOW_CONN_ID     = Variable.get('ENV_AIRFLOW_CONN_ID_MSSQL_CONT', default_var='sql_server_retail_conn')
 TABLE_NAME          = Variable.get('ENV_TABLE_CLIENTES', default_var='RetailDB.dbo.clientes')
+
+# Solo si hay labels definidos en Airflow, de lo contrario comentar la línea
+# LABELS = {
+#     "dueno": os.environ.get('LABEL_DUENO'),
+#     "aplicacion": "medallion-gcp",
+#     "centrocosto": os.environ.get('LABEL_CENTROCOSTO'),
+#     "entorno": os.environ.get('ENV_ENVIRONMENT'),
+#     "horario": "24x5",
+#     "nombre": PROJECT_ID,
+#     "proyecto": PROJECT_ID,
+#     "servicio": "dataflow"
+# }
 
 # ─── Conexión SQL Server via BaseHook ─────────────────────────────────────────
 conn        = BaseHook.get_connection(AIRFLOW_CONN_ID)
@@ -115,9 +128,15 @@ with models.DAG(
                     "additionalExperiments": [
                         "use_runner_v2",
                         "enable_lineage=true"
+                        # Asigna la etiqueta de red 'inet-tmp' a las VMs de Dataflow para cumplir con reglas de firewall o rutas de salida
+                        #"use_network_tags=inet-tmp"
+                        # Propaga la etiqueta de red 'inet-tmp' específicamente a los contenedores y workers efímeros de las Flex Templates
+                        #"use_network_tags_for_flex_templates=inet-tmp",
                     ],
-                    # Pinggy crea un puente seguro entre tu computador local y internet. Le asigna una dirección pública temporal a tu túnel
-                    # Si Dataflow intenta conectarse directamente a tu base de datos local, la nube de Google simplemente "no la ve" porque hay un firewall de por medio
+                    # Solo si hay labels definidos en Airflow, de lo contrario comentar la línea
+                    #"additionalUserLabels": LABELS,
+                    
+                    # Pinggy crea un puente seguro entre tu computador local y internet. si Dataflow intenta conectarse directamente a tu base de datos local, la nube de Google simplemente "no la ve" porque hay un firewall de por medio
                     # WORKER_IP_PUBLIC pero con piggy, en entorno de GCP en Managed Airflow es WORKER_IP_PRIVATE
                     "ipConfiguration": "WORKER_IP_PUBLIC",
                     "tempLocation": GCS_TEMP_LOCATION
