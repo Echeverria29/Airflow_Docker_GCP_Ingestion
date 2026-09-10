@@ -29,8 +29,8 @@ password_db = conn.password
 database    = conn.schema
 
 # Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy
-dataflow_host = 'uyhyu-201-241-207-198.run.pinggy-free.link'
-dataflow_port = '39605'
+dataflow_host = 'pprtp-201-241-207-198.run.pinggy-free.link'
+dataflow_port = '36755'
 
 # JDBC URL para Dataflow en GCP
 jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={database};"
@@ -104,8 +104,11 @@ with models.DAG(
                     "connectionProperties": "integratedSecurity=false;encrypt=true;trustServerCertificate=true",
                 },
                 "environment": {
+                    #"zone": "us-central1-f",  # <--- Probamos con la zona f
+                    "machineType": "e2-medium",         # <--- Para el Launcher VM
                     "numWorkers": 1,
                     "maxWorkers": 3,
+                    # comentar workerRegion para que tome la zona asignada en zone
                     "workerRegion": LOCATION,
                     "subnetwork": SUBNETWORK,
                     "serviceAccountEmail": SERVICE_ACCOUNT,
@@ -126,7 +129,7 @@ with models.DAG(
         gcp_conn_id='gcp_bigquery_conn',
         configuration={
             'query': {
-                'query': f'CALL `{PROJECT_ID}.bronze_retail.clientes`();',
+                'query': f'CALL `{PROJECT_ID}.bronze_retail.sp_retail_clientes`();',
                 'useLegacySql': False,
             }
         },
