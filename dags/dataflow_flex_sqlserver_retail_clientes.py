@@ -1,9 +1,7 @@
 import os
 import logging
-from datetime import datetime, timedelta
-
+from datetime import timedelta
 from airflow import models
-from airflow.models import Variable
 from airflow.hooks.base import BaseHook
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from airflow.providers.google.cloud.operators.dataflow import DataflowStartFlexTemplateOperator
@@ -12,14 +10,14 @@ from airflow.providers.google.cloud.operators.dataflow import DataflowStartFlexT
 log = logging.getLogger(__name__)
 
 # ─── Obtención de Variables de Entorno (Estilo Managed Airflow GCP) ────────────────
-PROJECT_ID        = os.environ.get('ENV_PROJECT_ID')
-LOCATION          = os.environ.get('ENV_LOCATION')
+PROJECT_ID = os.environ.get('ENV_PROJECT_ID', '')
+LOCATION          = os.environ.get('ENV_LOCATION','')
 SERVICE_ACCOUNT   = os.environ.get('ENV_SERVICE_ACCOUNT')
 SUBNETWORK        = os.environ.get('ENV_SUBNETWORK', '')
 GCS_TEMP_LOCATION = os.environ.get('ENV_GCS_TEMP_LOCATION')
 
 # ─── Conexión SQL Server ──────────────────────────────────────────────────────
-AIRFLOW_CONN_ID   = os.environ.get('ENV_AIRFLOW_CONN_ID_MSSQL')
+AIRFLOW_CONN_ID   = os.environ.get('ENV_AIRFLOW_CONN_ID_MSSQL', '')
 TABLE_NAME        = os.environ.get('ENV_TABLE_CLIENTES')
 
 # Solo si hay labels definidos en Airflow, de lo contrario comentar la línea
@@ -115,11 +113,11 @@ with models.DAG(
                     "connectionProperties": "integratedSecurity=false;encrypt=true;trustServerCertificate=true",
                 },
                 "environment": {
-                    #"zone": "us-central1-f",  # <--- Probamos con la zona f
+                    # Se cambio tipo de maquina por "e2-medium" para el Launcher VM, ya que "n1-standard-1" 
+                    # estaba causando errores de memoria insuficiente
                     "machineType": "e2-medium",         # <--- Para el Launcher VM
                     "numWorkers": 1,
                     "maxWorkers": 3,
-                    # comentar workerRegion para que tome la zona asignada en zone
                     "workerRegion": LOCATION,
                     "subnetwork": SUBNETWORK,
                     "serviceAccountEmail": SERVICE_ACCOUNT,
@@ -158,4 +156,4 @@ with models.DAG(
     )
 
     # ─── Flujo ────────────────────────────────────────────────────────────────
-    delete_bronze_silver >> start_flex_template_job >> bigquery_sp_stage_silver
+    _= delete_bronze_silver >> start_flex_template_job >> bigquery_sp_stage_silver
