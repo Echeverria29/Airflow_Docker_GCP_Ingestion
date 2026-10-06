@@ -145,26 +145,7 @@ echo "AIRFLOW_UID=$(id -u)" > .env
 docker compose up airflow-init
 ```
 
-### Paso 3: Conectar SQL Server a la Red de Airflow
-
-Docker Compose generará una red para Airflow (ej. `airflow-docker-compose_default` o `gcp_medallion_arquitecture_default`). Enlaza el contenedor de SQL Server a dicha red:
-
-```bash
-# 1. Identifica el nombre exacto de la red generada
-docker network ls
-
-# 2. Conecta SQL Server a la red de Airflow
-docker network connect gcp_medallion_arquitecture_default sql_server_retail
-```
-
-Verificar conectividad:
-
-```bash
-docker exec -it gcp_medallion_arquitecture-airflow-scheduler-1 bash -c "cat < /dev/null > /dev/tcp/sql_server_retail/1433"
-```
-*(Si la respuesta vuelve a la línea de comandos sin arrojar error, la comunicación es correcta).*
-
-### Paso 4: Levantar los Servicios
+### Paso 3: Levantar los Servicios
 
 **Modo Liviano** (Servicios mínimos):
 
@@ -177,6 +158,27 @@ docker compose up -d airflow-apiserver airflow-scheduler postgres
 ```bash
 docker compose up -d
 ```
+
+### Paso 4: Conectar SQL Server a la Red de Airflow
+
+Docker Compose generará una red para Airflow (ej.`airflow_docker_gcp_ingestion_default`). Enlaza el contenedor de SQL Server a dicha red:
+
+```bash
+# 1. Identifica el nombre exacto de la red generada
+docker network ls
+
+# 2. Conecta SQL Server a la red de Airflow
+docker network connect airflow_docker_gcp_ingestion_default sql_server_retail
+```
+
+Verificar conectividad:
+
+```bash
+docker exec -it  airflow_docker_gcp_ingestion-airflow-scheduler-1 bash -c "cat < /dev/null > /dev/tcp/sql_server_retail/1433"
+```
+*(Si la respuesta vuelve a la línea de comandos sin arrojar error, la comunicación es correcta).*
+
+
 
 ---
 
