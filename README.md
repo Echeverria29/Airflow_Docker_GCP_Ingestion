@@ -253,15 +253,20 @@ dataflow_port = '40059'
 Si experimentas problemas de escritura desde VS Code en la carpeta `dags/`:
 
 ```bash
-sudo chown -R $USER:$USER ~/airflow-docker-compose
-chmod -R 777 ~/airflow-docker-compose/dags
+sudo chown -R $USER:$USER ~/Airflow_Docker_GCP_Ingestion
+chmod -R 777 ~/Airflow_Docker_GCP_Ingestion/dags
 ```
 
 ### DAGs no actualizados en la UI
 Si modificas un DAG y la interfaz web no refleja los cambios:
 
 ```bash
-docker exec -it gcp_medallion_arquitecture-airflow-scheduler-1 airflow dags reserialize
+docker compose exec airflow-scheduler airflow dags reserialize
+```
+Revisar errores del DAG:
+
+```bash
+docker compose exec airflow-scheduler airflow dags test dataflow_flex_sqlserver_retail_clientes 2026-10-06
 ```
 
 ### Error de facturación en GCP / BigQuery
