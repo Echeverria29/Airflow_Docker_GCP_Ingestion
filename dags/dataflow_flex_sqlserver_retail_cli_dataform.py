@@ -5,6 +5,10 @@ from airflow import models
 from airflow.hooks.base import BaseHook
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from airflow.providers.google.cloud.operators.dataflow import DataflowStartFlexTemplateOperator
+from airflow.providers.google.cloud.operators.dataform import (
+    DataformCreateCompilationResultOperator,
+    DataformCreateWorkflowInvocationOperator,
+)
 
 # ─── Logger ───────────────────────────────────────────────────────────────────
 log = logging.getLogger(__name__)
@@ -15,6 +19,10 @@ LOCATION          = os.environ.get('ENV_LOCATION','')
 SERVICE_ACCOUNT   = os.environ.get('ENV_SERVICE_ACCOUNT')
 SUBNETWORK        = os.environ.get('ENV_SUBNETWORK', '')
 GCS_TEMP_LOCATION = os.environ.get('ENV_GCS_TEMP_LOCATION')
+
+# ─── Configuración Dataform ────────────────────────────────────────────────────
+DATAFORM_REPOSITORY_ID = os.environ.get('ENV_DATAFORM_REPOSITORY_ID', 'dataform-retail')
+DATAFORM_BRANCH        = os.environ.get('ENV_DATAFORM_BRANCH', 'main')
 
 # ─── Conexión SQL Server ──────────────────────────────────────────────────────
 AIRFLOW_CONN_ID   = os.environ.get('ENV_AIRFLOW_CONN_ID_MSSQL', '')
@@ -37,10 +45,9 @@ user_db     = conn.login
 password_db = conn.password
 database    = conn.schema
 
-# Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy, dura 60 minutos.
-# (Ejecutar pinggy.exe en tu computador local) para exponer tu base de datos local a la nube de Google.
-dataflow_host = 'ntrsz-201-241-207-198.run.pinggy-free.link'
-dataflow_port = '45273'
+# Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy
+dataflow_host = 'mcpbz-201-241-207-198.run.pinggy-free.link'
+dataflow_port = '34189'
 
 # JDBC URL para Dataflow en GCP
 jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={database};"
@@ -69,8 +76,25 @@ with models.DAG(
         "retries": 1,
         "retry_delay": timedelta(seconds=300)
     },
-    tags=["bigquery", "dataflow", "sqlserver", "incremental"]
+    tags=["bigquery", "dataflow", "sqlserver", "incremental", "dataform"]
 ) as dag:
+    
+    # ─── DELETE Bronze y Silver ───────────────────────────────────────────────
+    delete_bronze_silver = BigQueryInsertJobOperator(
+        task_id='delete_bronze_and_silver',
+        gcp_conn_id='gcp_bigquery_conn',
+        configuration={
+            'query': {
+                'query': f"""
+                    -- 1. Delete Bronze
+                    TRUNCATE TABLE `{PROJECT_ID}.bronze_retail.clientes`;
+                """,
+                'useLegacySql': False,
+            }
+        },
+        location=LOCATION,
+        project_id=PROJECT_ID
+    )
 
     # ─── Lanzar Dataflow ──────────────────────────────────────────────────────
     start_flex_template_job = DataflowStartFlexTemplateOperator(
@@ -120,5 +144,29 @@ with models.DAG(
         }
     )
 
+    # ─── Dataform: Compilar Código desde GitHub ──────────────────────────────
+    create_compilation_result = DataformCreateCompilationResultOperator(
+        task_id="create_dataform_compilation_result",
+        gcp_conn_id='gcp_bigquery_conn',
+        project_id=PROJECT_ID,
+        region=LOCATION,
+        repository_id=DATAFORM_REPOSITORY_ID,
+        compilation_result={
+            "git_commitish": DATAFORM_BRANCH,
+        },
+    )
+
+    # ─── Dataform: Ejecutar Transformaciones (Silver / Gold) ──────────────────
+    execute_dataform_workflow = DataformCreateWorkflowInvocationOperator(
+        task_id="execute_dataform_workflow",
+        gcp_conn_id='gcp_bigquery_conn',
+        project_id=PROJECT_ID,
+        region=LOCATION,
+        repository_id=DATAFORM_REPOSITORY_ID,
+        workflow_invocation={
+            "compilation_result": "{{ task_instance.xcom_pull('create_dataform_compilation_result')['name'] }}",
+        },
+    )
+
     # ─── Flujo ────────────────────────────────────────────────────────────────
-    _= start_flex_template_job
+    _ = delete_bronze_silver >> start_flex_template_job >> create_compilation_result >> execute_dataform_workflow
