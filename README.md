@@ -120,7 +120,40 @@ docker exec -it sql_server_retail /opt/mssql-tools18/bin/sqlcmd \
 ```
 
 ---
+### 🧪 Verificación de Conexiones en Airflow
 
+Puedes validar que las conexiones a la base de datos y a la nube estén funcionando correctamente ejecutando los siguientes comandos en tu terminal de WSL:
+
+#### 1. Probar la conexión de SQL Server
+Ejecuta el comando CLI para validar la conexión con SQL Server:
+
+```bash
+docker compose exec airflow-scheduler airflow connections test sql_server_retail_conn
+```
+
+**Resultado esperado:**
+```text
+Retrieving connection: 'sql_server_retail_conn'
+Testing...
+
+Connection success!
+```
+
+#### 2. Probar la conexión de Google Cloud (GCP)
+Ejecuta el comando CLI para probar la autenticación con BigQuery / GCP:
+
+```bash
+docker compose exec airflow-scheduler airflow connections test gcp_bigquery_conn
+```
+
+**Resultado esperado:**
+```text
+Retrieving connection: 'gcp_bigquery_conn'
+Testing...
+
+Connection success!
+```
+---
 ## 🌪️ Despliegue de Apache Airflow
 
 ### Paso 1: Configurar Variables de Entorno
@@ -277,6 +310,7 @@ docker compose exec airflow-scheduler airflow dags test dataflow_flex_sqlserver_
 Si las APIs de Compute Engine o Data Lineage están desactivadas, habilítalas con `gcloud`:
 
 ```bash
+gcloud services enable dataflow.googleapis.com --project=tu-proyecto-id
 gcloud services enable compute.googleapis.com --project=tu-proyecto-id
 gcloud services enable datalineage.googleapis.com --project=tu-proyecto-id
 ```
