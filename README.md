@@ -330,10 +330,12 @@ gcloud projects add-iam-policy-binding tu-proyecto-id \
 ### Saturación de zona GCP
 Si la zona predeterminada de GCP está saturada, cámbiala dentro de los parámetros de ejecución en tu DAG:
 
+Se cambio tipo de maquina por "e2-medium" para el Launcher VM, ya que "n1-standard-1" 
+estaba causando errores de memoria insuficiente
+
 ```python
 "environment": {
-    "zone": "us-central1-a",
-    "serviceAccountEmail": "tu-service-account@tu-proyecto-id.iam.gserviceaccount.com"
+"machineType": "e2-medium",         # <--- Para el Launcher VM
 }
 ```
 
