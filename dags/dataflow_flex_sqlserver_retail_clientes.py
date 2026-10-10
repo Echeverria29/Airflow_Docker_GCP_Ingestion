@@ -38,8 +38,8 @@ password_db = conn.password
 database    = conn.schema
 
 # Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy
-dataflow_host = 'kfwiu-201-241-207-198.run.pinggy-free.link'
-dataflow_port = '40121'
+dataflow_host = 'mcpbz-201-241-207-198.run.pinggy-free.link'
+dataflow_port = '34189'
 
 # JDBC URL para Dataflow en GCP
 jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={database};"
