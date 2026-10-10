@@ -304,6 +304,13 @@ Revisar errores del DAG:
 ```bash
 docker compose exec airflow-scheduler airflow dags test dataflow_flex_sqlserver_retail_clientes 2026-10-06
 ```
+### Eliminar el registro en la base de datos:
+
+Si ya no actualiza y la Ui se queda pegada definitivamente, entra directamente usa el comando de Airflow para borrar el registro fantasma antes de volver a levantar:
+
+```bash
+docker compose run --rm airflow-scheduler airflow dags delete dataflow_flex_sqlserver
+```
 
 ### Error de facturación en GCP / BigQuery
 - **Causa:** Las operaciones DML en BigQuery y los workers de Dataflow requieren una cuenta de facturación vinculada.
@@ -335,7 +342,7 @@ estaba causando errores de memoria insuficiente
 
 ```python
 "environment": {
-"machineType": "e2-medium",         # <--- Para el Launcher VM
+   "machineType": "e2-medium",         # <--- Para el Launcher VM
 }
 ```
 
