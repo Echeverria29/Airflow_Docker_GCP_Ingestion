@@ -181,12 +181,15 @@ docker compose up airflow-init
 ### Paso 3: Levantar los Servicios
 
 **Modo Liviano** (Servicios mínimos):
+Por DEFECTO
 
 ```bash
 docker compose up -d airflow-apiserver airflow-scheduler postgres
 ```
 
 **Modo Completo** (Todos los componentes):
+Para Utilizar todos los componentes modificar el archivo docker-compose.yaml 
+(#AIRFLOW__CORE__EXECUTOR: CeleryExecutor)
 
 ```bash
 docker compose up -d
