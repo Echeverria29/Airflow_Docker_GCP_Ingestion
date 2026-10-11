@@ -21,8 +21,8 @@ SUBNETWORK        = os.environ.get('ENV_SUBNETWORK', '')
 GCS_TEMP_LOCATION = os.environ.get('ENV_GCS_TEMP_LOCATION')
 
 # ─── Configuración Dataform ────────────────────────────────────────────────────
-DATAFORM_REPOSITORY_ID = os.environ.get('ENV_DATAFORM_REPOSITORY_ID', 'dataform-retail')
-DATAFORM_BRANCH        = os.environ.get('ENV_DATAFORM_BRANCH', 'main')
+DATAFORM_REPOSITORY_ID = os.environ.get('ENV_DATAFORM_REPOSITORY_ID', '')
+DATAFORM_BRANCH        = os.environ.get('ENV_DATAFORM_BRANCH', '')
 
 # ─── Conexión SQL Server ──────────────────────────────────────────────────────
 AIRFLOW_CONN_ID   = os.environ.get('ENV_AIRFLOW_CONN_ID_MSSQL', '')
@@ -46,8 +46,8 @@ password_db = conn.password
 database    = conn.schema
 
 # Sobrescribimos host y puerto para Dataflow usando el túnel de Pinggy
-dataflow_host = 'mcpbz-201-241-207-198.run.pinggy-free.link'
-dataflow_port = '34189'
+dataflow_host = 'fpsbp-201-241-207-198.run.pinggy-free.link'
+dataflow_port = '45763'
 
 # JDBC URL para Dataflow en GCP
 jdbc_url = f"jdbc:sqlserver://{dataflow_host}:{dataflow_port};databaseName={database};"
@@ -80,69 +80,69 @@ with models.DAG(
 ) as dag:
     
     # ─── DELETE Bronze y Silver ───────────────────────────────────────────────
-    delete_bronze_silver = BigQueryInsertJobOperator(
-        task_id='delete_bronze_and_silver',
-        gcp_conn_id='gcp_bigquery_conn',
-        configuration={
-            'query': {
-                'query': f"""
-                    -- 1. Delete Bronze
-                    TRUNCATE TABLE `{PROJECT_ID}.bronze_retail.clientes`;
-                """,
-                'useLegacySql': False,
-            }
-        },
-        location=LOCATION,
-        project_id=PROJECT_ID
-    )
+    # delete_bronze = BigQueryInsertJobOperator(
+    #     task_id='delete_bronze',
+    #     gcp_conn_id='gcp_bigquery_conn',
+    #     configuration={
+    #         'query': {
+    #             'query': f"""
+    #                 -- 1. Delete Bronze
+    #                 TRUNCATE TABLE `{PROJECT_ID}.bronze_retail.clientes`;
+    #             """,
+    #             'useLegacySql': False,
+    #         }
+    #     },
+    #     location=LOCATION,
+    #     project_id=PROJECT_ID
+    # )
 
     # ─── Lanzar Dataflow ──────────────────────────────────────────────────────
-    start_flex_template_job = DataflowStartFlexTemplateOperator(
-        task_id="start_sqlserver_to_bq_flex_job_incremental",
-        gcp_conn_id='gcp_bigquery_conn',
-        project_id=PROJECT_ID,
-        location=LOCATION,
-        body={
-            "launchParameter": {
-                "jobName": f"extract-sqlserver-to-bq-incremental-{os.urandom(4).hex()}",
-                "containerSpecGcsPath": "gs://dataflow-templates-us-central1/latest/flex/SQLServer_to_BigQuery",
-                "parameters": {
-                    "connectionURL": jdbc_url,
-                    "username": user_db,
-                    "password": password_db,
-                    "query": sql,
-                    "outputTable": f"{PROJECT_ID}:bronze_retail.clientes",
-                    "bigQueryLoadingTemporaryDirectory": GCS_TEMP_LOCATION,
-                    "connectionProperties": "integratedSecurity=false;encrypt=true;trustServerCertificate=true",
-                },
-                "environment": {
-                    # Se cambio tipo de maquina por "e2-medium" para el Launcher VM, ya que "n1-standard-1" 
-                    # estaba causando errores de memoria insuficiente
-                    "machineType": "e2-medium",         # <--- Para el Launcher VM
-                    "numWorkers": 1,
-                    "maxWorkers": 3,
-                    "workerRegion": LOCATION,
-                    "subnetwork": SUBNETWORK,
-                    "serviceAccountEmail": SERVICE_ACCOUNT,
-                    "additionalExperiments": [
-                        "use_runner_v2",
-                        "enable_lineage=true"
-                        # Asigna la etiqueta de red 'inet-tmp' a las VMs de Dataflow para cumplir con reglas de firewall o rutas de salida
-                        #"use_network_tags=inet-tmp"
-                        # Propaga la etiqueta de red 'inet-tmp' específicamente a los contenedores y workers efímeros de las Flex Templates
-                        #"use_network_tags_for_flex_templates=inet-tmp",
-                    ],
-                    # Solo si hay labels definidos en Airflow, de lo contrario comentar la línea
-                    #"additionalUserLabels": LABELS,
+    # start_flex_template_job = DataflowStartFlexTemplateOperator(
+    #     task_id="start_sqlserver_to_bq_flex_job_incremental",
+    #     gcp_conn_id='gcp_bigquery_conn',
+    #     project_id=PROJECT_ID,
+    #     location=LOCATION,
+    #     body={
+    #         "launchParameter": {
+    #             "jobName": f"extract-sqlserver-to-bq-incremental-{os.urandom(4).hex()}",
+    #             "containerSpecGcsPath": "gs://dataflow-templates-us-central1/latest/flex/SQLServer_to_BigQuery",
+    #             "parameters": {
+    #                 "connectionURL": jdbc_url,
+    #                 "username": user_db,
+    #                 "password": password_db,
+    #                 "query": sql,
+    #                 "outputTable": f"{PROJECT_ID}:bronze_retail.clientes",
+    #                 "bigQueryLoadingTemporaryDirectory": GCS_TEMP_LOCATION,
+    #                 "connectionProperties": "integratedSecurity=false;encrypt=true;trustServerCertificate=true",
+    #             },
+    #             "environment": {
+    #                 # Se cambio tipo de maquina por "e2-medium" para el Launcher VM, ya que "n1-standard-1" 
+    #                 # estaba causando errores de memoria insuficiente
+    #                 "machineType": "e2-medium",         # <--- Para el Launcher VM
+    #                 "numWorkers": 1,
+    #                 "maxWorkers": 3,
+    #                 "workerRegion": LOCATION,
+    #                 "subnetwork": SUBNETWORK,
+    #                 "serviceAccountEmail": SERVICE_ACCOUNT,
+    #                 "additionalExperiments": [
+    #                     "use_runner_v2",
+    #                     "enable_lineage=true"
+    #                     # Asigna la etiqueta de red 'inet-tmp' a las VMs de Dataflow para cumplir con reglas de firewall o rutas de salida
+    #                     #"use_network_tags=inet-tmp"
+    #                     # Propaga la etiqueta de red 'inet-tmp' específicamente a los contenedores y workers efímeros de las Flex Templates
+    #                     #"use_network_tags_for_flex_templates=inet-tmp",
+    #                 ],
+    #                 # Solo si hay labels definidos en Airflow, de lo contrario comentar la línea
+    #                 #"additionalUserLabels": LABELS,
                     
-                    # Pinggy crea un puente seguro entre tu computador local y internet. si Dataflow intenta conectarse directamente a tu base de datos local, la nube de Google simplemente "no la ve" porque hay un firewall de por medio
-                    # WORKER_IP_PUBLIC pero con piggy, en entorno de GCP en Managed Airflow es WORKER_IP_PRIVATE
-                    "ipConfiguration": "WORKER_IP_PUBLIC",
-                    "tempLocation": GCS_TEMP_LOCATION
-                }
-            }
-        }
-    )
+    #                 # Pinggy crea un puente seguro entre tu computador local y internet. si Dataflow intenta conectarse directamente a tu base de datos local, la nube de Google simplemente "no la ve" porque hay un firewall de por medio
+    #                 # WORKER_IP_PUBLIC pero con piggy, en entorno de GCP en Managed Airflow es WORKER_IP_PRIVATE
+    #                 "ipConfiguration": "WORKER_IP_PUBLIC",
+    #                 "tempLocation": GCS_TEMP_LOCATION
+    #             }
+    #         }
+    #     }
+    # )
 
     # ─── Dataform: Compilar Código desde GitHub ──────────────────────────────
     create_compilation_result = DataformCreateCompilationResultOperator(
@@ -165,8 +165,11 @@ with models.DAG(
         repository_id=DATAFORM_REPOSITORY_ID,
         workflow_invocation={
             "compilation_result": "{{ task_instance.xcom_pull('create_dataform_compilation_result')['name'] }}",
+            "invocation_config": {
+                "service_account": SERVICE_ACCOUNT,
+            },
         },
     )
 
     # ─── Flujo ────────────────────────────────────────────────────────────────
-    _ = delete_bronze_silver >> start_flex_template_job >> create_compilation_result >> execute_dataform_workflow
+    _ = create_compilation_result >> execute_dataform_workflow
